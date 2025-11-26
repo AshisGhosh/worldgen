@@ -1,6 +1,6 @@
 from diffusion import train_diffusion
 from dit import DiT
-from dataset import WorldDataset, SingleSampleDataset
+from dataset import WorldDataset, SingleSampleDataset  # noqa: F401
 from torch.utils.data import DataLoader
 import torch
 import torch.nn as nn
@@ -53,7 +53,8 @@ def train():
         device=device,
         num_epochs=6000,
         save_freq=10,
-        save_dir=f"./checkpoints/{run_name}",
+        run_name=run_name,
+        save_dir="./checkpoints",
     )
 
 
