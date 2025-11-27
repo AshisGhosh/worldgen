@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 from .transformer import TransformerBlock
+from .film import FiLM
 
 
 def patchify(x, patch_size):
@@ -35,8 +36,8 @@ class DiT(nn.Module):
             img_size % patch_size == 0
         ), f"Image size {img_size} must be divisible by patch size {patch_size}"
         self.dim = dim
-        self.patch_size = 4
-        self.img_size = 64
+        self.patch_size = patch_size
+        self.img_size = img_size
         self.num_patches_per_side = self.img_size // self.patch_size
         self.num_patches = self.num_patches_per_side**2
         self.img_channels = img_channels
@@ -50,6 +51,9 @@ class DiT(nn.Module):
             nn.ReLU(),
             nn.Linear(dim, dim),
         )
+
+        # [B, D]
+        self.film = FiLM(dim)
 
         # proj [B, N, C * P * P] -> [B, N, D]
         self.proj = nn.Linear(img_channels * self.patch_size * self.patch_size, dim)
@@ -79,11 +83,8 @@ class DiT(nn.Module):
         # [B, 1] -> [B, D]
         t = self.time_emb(t)
 
-        # [B, D] -> [B, 1, D]
-        t = t.unsqueeze(1)
-
-        # [B, N, D] + [B, 1, D] -> [B, N, D]
-        x = x + t
+        # [B, N, D], [B, D] -> [B, N, D]
+        x = self.film(x, t)
 
         for block in self.attn_blocks:
             x = block(x)
