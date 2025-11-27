@@ -12,6 +12,8 @@ torch.manual_seed(42)
 torch.cuda.manual_seed_all(42)
 np.random.seed(42)
 random.seed(42)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 
 def seed_worker(worker_id):
@@ -52,7 +54,7 @@ def train():
         dataloader,
         device=device,
         num_epochs=2000,
-        save_freq=1,
+        save_freq=10,
         run_name=run_name,
         save_dir="./checkpoints",
     )
