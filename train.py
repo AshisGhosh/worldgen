@@ -51,7 +51,7 @@ def train():
         optimizer,
         dataloader,
         device=device,
-        num_epochs=6000,
+        num_epochs=2000,
         save_freq=10,
         run_name=run_name,
         save_dir="./checkpoints",

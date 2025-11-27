@@ -10,6 +10,10 @@ import numpy as np
 
 import torchvision.utils as vutils
 
+from metrics import compute_kid_from_tensors, load_inception
+
+inception = load_inception()
+
 
 def cosine_alpha_cumprod(T, s=0.008):
     t = torch.linspace(0, T, T + 1, device=device)
@@ -89,19 +93,56 @@ def eval_diffusion(model, loader, noise_schedule, t_val=None):
         ) / sqrt_alpha_cumprod[t].view(B, 1, 1, 1)
 
         # unnormalize for visualization
-        def to_img(x):
+        def denorm(x):
             x = x.clamp(-1, 1)
             x = (x + 1) / 2
             return x.squeeze(0)
 
         t_int = t.item()
         eval_dict = {
-            "x0": to_img(x0),
-            f"xt_{t_int}": to_img(xt),
-            "x0_hat": to_img(x0_hat),
+            "x0": denorm(x0),
+            f"xt_{t_int}": denorm(xt),
+            "x0_hat": denorm(x0_hat),
         }
 
     return eval_dict, eps_pred, eps
+
+
+def sample_diffusion_batch(
+    model,
+    noise_schedule,
+    num_samples: int,
+    num_steps: int = 100,
+    batch_size: int = 64,
+    device: str = "cuda",
+):
+    """
+    Generate num_samples images from the diffusion model using DDIM.
+    Returns [N, 3, H, W] in [-1, 1].
+    """
+    model.eval()
+    all_samples = []
+
+    with torch.no_grad():
+        remaining = num_samples
+        while remaining > 0:
+            b = min(batch_size, remaining)
+            xt = torch.randn(b, 3, 64, 64, device=device)
+
+            # Only care about final x_0
+            snapshots = ddim_sample(
+                xt,
+                model,
+                noise_schedule,
+                num_steps,
+                steps_to_show=[0],
+            )
+            x0_hat = snapshots[0]  # assume dict {step: tensor}
+
+            all_samples.append(x0_hat)
+            remaining -= b
+
+    return torch.cat(all_samples, dim=0)  # [N, 3, H, W]
 
 
 def images_dict_to_grid(images_dict, nrow=4, normalize=True):
@@ -111,6 +152,50 @@ def images_dict_to_grid(images_dict, nrow=4, normalize=True):
     grid = vutils.make_grid(batch, nrow=nrow, normalize=normalize, scale_each=True)
 
     return grid
+
+
+def eval_kid(
+    model,
+    dataloader,
+    noise_schedule,
+    inception,
+    num_real_samples: int = 512,
+    num_steps: int = 100,
+    device: str = "cuda",
+):
+    model.eval()
+    real_imgs = []
+
+    with torch.no_grad():
+        for starts, _, _ in dataloader:
+            starts = starts.to(device).float()
+            starts = (starts / 127.5) - 1  # [-1, 1]
+            real_imgs.append(starts)
+
+            if sum(x.size(0) for x in real_imgs) >= num_real_samples:
+                break
+
+    real_imgs = torch.cat(real_imgs, dim=0)[:num_real_samples]  # [N, 3, H, W]
+
+    fake_imgs = sample_diffusion_batch(
+        model=model,
+        noise_schedule=noise_schedule,
+        num_samples=num_real_samples,
+        num_steps=num_steps,
+        batch_size=64,
+        device=device,
+    )  # [N, 3, H, W] in [-1, 1]
+
+    def denorm(x):
+        x = x.clamp(-1, 1)
+        x = (x + 1) / 2.0  # [-1, 1] -> [0, 1]
+        return x
+
+    real_imgs = denorm(real_imgs)
+    fake_imgs = denorm(fake_imgs)
+
+    kid_value = compute_kid_from_tensors(real_imgs, fake_imgs, inception)
+    return kid_value
 
 
 def train_diffusion(
@@ -198,3 +283,6 @@ def train_diffusion(
 
             loss = criterion(eps_pred, eps)
             run.track(loss.item(), name="eval_loss", step=global_step)
+
+            kid_value = eval_kid(model, dataloader, noise_schedule, inception)
+            run.track(kid_value, name="kid", step=global_step)
