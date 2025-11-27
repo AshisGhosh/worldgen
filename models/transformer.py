@@ -1,18 +1,20 @@
 import torch
 import torch.nn as nn
 
+from .rms_norm import RMSNorm
+
 
 class TransformerBlock(nn.Module):
     def __init__(self, dim, mlp_ratio=4):
         super().__init__()
-        self.norm1 = nn.LayerNorm(dim)
+        self.norm1 = RMSNorm(dim)
 
         self.q = nn.Linear(dim, dim)
         self.k = nn.Linear(dim, dim)
         self.v = nn.Linear(dim, dim)
         self.proj = nn.Linear(dim, dim)
 
-        self.norm2 = nn.LayerNorm(dim)
+        self.norm2 = RMSNorm(dim)
         self.mlp = nn.Sequential(
             nn.Linear(dim, dim * mlp_ratio),
             nn.GELU(),
