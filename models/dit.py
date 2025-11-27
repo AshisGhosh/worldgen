@@ -80,6 +80,7 @@ class DiT(nn.Module):
         t = self.time_emb(t)
 
         for block in self.attn_blocks:
+            # [B, N, D], [B, D] -> [B, N, D]
             x = block(x, t)
 
         # [B, N, D] -> [B, N, C * P * P]

@@ -5,6 +5,7 @@ from .film import FiLM
 from .siglip import SigLIPEncoder
 from .world_dit import WorldDiT
 from .vision_encoder import VisionEncoder
+from .adaptive_layernorm_zero import AdaptiveLayerNormZero
 
 __all__ = [
     "DiT",
@@ -14,4 +15,5 @@ __all__ = [
     "SigLIPEncoder",
     "WorldDiT",
     "VisionEncoder",
+    "AdaptiveLayerNormZero"
 ]
