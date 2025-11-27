@@ -218,6 +218,7 @@ def train_diffusion(
         "save_freq": save_freq,
         "device": device,
         "T": T,
+        "batch_size": dataloader.batch_size,
     }
 
     save_dir = f"{save_dir}/{run_name}"
