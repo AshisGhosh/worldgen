@@ -1,4 +1,4 @@
-from diffusion import train_diffusion
+from train.diffusion import train_diffusion
 from models import DiT
 from dataset import WorldDataset, SingleSampleDataset  # noqa: F401
 from torch.utils.data import DataLoader

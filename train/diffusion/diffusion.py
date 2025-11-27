@@ -3,14 +3,14 @@ from tqdm import tqdm, trange
 from typing import Optional, Dict
 import os
 
-from diffusion_sampler import ddim_sample
+from .diffusion_sampler import ddim_sample
 import aim
 from aim import Run
 import numpy as np
 
 import torchvision.utils as vutils
 
-from metrics import compute_kid_from_tensors, load_inception
+from ..metrics import compute_kid_from_tensors, load_inception
 
 inception = load_inception()
 
@@ -219,6 +219,8 @@ def train_diffusion(
         "device": device,
         "T": T,
         "batch_size": dataloader.batch_size,
+        "lr": optimizer.defaults["lr"],
+        "dim": model.dim,
     }
 
     save_dir = f"{save_dir}/{run_name}"
