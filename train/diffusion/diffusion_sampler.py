@@ -26,7 +26,8 @@ def ddim_sample(xt, model, noise_schedule, ddim_steps, steps_to_show):
             t_float = t_long.float() / (T - 1)
 
             # predict eps at this timestep
-            eps = model(xt, t_float)
+            with torch.autocast(device.type, torch.float16):
+                eps = model(xt, t_float)
 
             sqrt_alpha_bar_t = sqrt_alphas_bar[t_int].view(-1, 1, 1, 1)
             sqrt_one_minus_alpha_bar_t = sqrt_one_minus_alphas_bar[t_int].view(

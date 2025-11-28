@@ -85,8 +85,8 @@ def eval_diffusion(model, loader, noise_schedule, t_val=None):
 
         xt, eps = q_sample(x0, t)
         t_float = t.float() / (T - 1)
-
-        eps_pred = model(xt, t_float)
+        with torch.autocast(device, torch.float16):
+            eps_pred = model(xt, t_float)
         x0_hat = (
             xt - sqrt_one_minus_alpha_cumprod[t].view(B, 1, 1, 1) * eps_pred
         ) / sqrt_alpha_cumprod[t].view(B, 1, 1, 1)
@@ -216,6 +216,9 @@ def train_diffusion(
     save_dir = f"{save_dir}/{run_name}"
     model.to(device)
     os.makedirs(save_dir, exist_ok=True)
+
+    scaler = torch.amp.GradScaler(device)
+
     for i in trange(num_epochs):
         model.train()
 
@@ -232,15 +235,19 @@ def train_diffusion(
             xt, eps = q_sample(starts, t)
 
             t_float = t.float() / (T - 1)
-            eps_pred = model(xt, t_float)
 
-            loss = criterion(eps_pred, eps)
+            with torch.autocast(device, torch.float16):
+                eps_pred = model(xt, t_float)
+                loss = criterion(eps_pred, eps)
+
             global_step = i * len(dataloader) + j
             run.track(loss.item(), name="training_loss", step=global_step)
             epoch_loss += loss.item()
 
-            loss.backward()
-            optimizer.step()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+            # optimizer.step()
 
             if ema is not None:
                 ema.update(model)
