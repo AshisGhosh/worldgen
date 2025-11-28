@@ -30,7 +30,7 @@ def unpatchify(x, patch_size, patches_per_side, img_size, channels):
 
 
 class DiT(nn.Module):
-    def __init__(self, dim=128, depth=3, patch_size=4, img_size=64, img_channels=3):
+    def __init__(self, dim=256, depth=3, patch_size=4, img_size=64, img_channels=3):
         super().__init__()
         assert (
             img_size % patch_size == 0
