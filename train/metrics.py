@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-@torch.no_grad()
+@torch.inference_mode()
 def get_inception_features(x, inception, device="cuda"):
     """
     x: [B, 3, H, W] in [0, 1] or [0, 255]
@@ -39,7 +39,7 @@ def load_inception(device="cuda"):
     return inception
 
 
-@torch.no_grad()
+@torch.inference_mode()
 def polynomial_mmd_ksd(x, y, degree=3, gamma=None, coef0=1.0):
     """
     x: [N, D]
@@ -71,7 +71,7 @@ def polynomial_mmd_ksd(x, y, degree=3, gamma=None, coef0=1.0):
     return mmd2
 
 
-@torch.no_grad()
+@torch.inference_mode()
 def compute_kid_from_tensors(real_imgs, fake_imgs, inception=None, device="cuda"):
     """
     real_imgs: [N, 3, H, W]

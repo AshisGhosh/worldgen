@@ -19,7 +19,7 @@ def ddim_sample(xt, model, noise_schedule, ddim_steps, steps_to_show):
     sqrt_one_minus_alphas_bar = noise_schedule["sqrt_one_minus_alphas_bar"]
 
     model.eval()
-    with torch.no_grad():
+    with torch.inference_mode():
         for i, t in enumerate(timesteps):
             t_int = int(t)
             t_long = torch.full((1,), t_int, device=device, dtype=torch.long)

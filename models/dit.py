@@ -48,7 +48,7 @@ class DiT(nn.Module):
         # [1, D]
         self.time_emb = nn.Sequential(
             nn.Linear(1, dim),
-            nn.ReLU(),
+            nn.SiLU(),
             nn.Linear(dim, dim),
         )
 

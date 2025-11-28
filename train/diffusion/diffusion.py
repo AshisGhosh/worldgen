@@ -8,9 +8,8 @@ import aim
 from aim import Run
 import numpy as np
 
-import torchvision.utils as vutils
-
 from ..metrics import compute_kid_from_tensors, load_inception
+from ..utils import images_dict_to_grid
 
 inception = load_inception()
 
@@ -70,7 +69,7 @@ def generate_snapshots(
 
 def eval_diffusion(model, loader, noise_schedule, t_val=None):
     model.eval()
-    with torch.no_grad():
+    with torch.inference_mode():
         imgs, _, _ = loader.dataset[0]
         x0 = (imgs.to(device) / 127.5) - 1
         x0 = x0.unsqueeze(0)
@@ -123,7 +122,7 @@ def sample_diffusion_batch(
     model.eval()
     all_samples = []
 
-    with torch.no_grad():
+    with torch.inference_mode():
         remaining = num_samples
         while remaining > 0:
             b = min(batch_size, remaining)
@@ -145,15 +144,6 @@ def sample_diffusion_batch(
     return torch.cat(all_samples, dim=0)  # [N, 3, H, W]
 
 
-def images_dict_to_grid(images_dict, nrow=4, normalize=True):
-    images = list(images_dict.values())
-    batch = torch.stack(images)
-
-    grid = vutils.make_grid(batch, nrow=nrow, normalize=normalize, scale_each=True)
-
-    return grid
-
-
 def eval_kid(
     model,
     dataloader,
@@ -166,7 +156,7 @@ def eval_kid(
     model.eval()
     real_imgs = []
 
-    with torch.no_grad():
+    with torch.inference_mode():
         for starts, _, _ in dataloader:
             starts = starts.to(device).float()
             starts = (starts / 127.5) - 1  # [-1, 1]
