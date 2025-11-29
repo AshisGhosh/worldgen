@@ -78,7 +78,9 @@ def compute_kid_from_tensors(real_imgs, fake_imgs, inception=None, device="cuda"
     fake_imgs: [N, 3, H, W]  (ideally N the same, but they don't *have* to be)
     Returns: scalar KID (MMD^2 in feature space)
     """
-    assert real_imgs.dim() == 4 and fake_imgs.dim() == 4, "Expect [N, 3, H, W] tensors"
+    assert (
+        real_imgs.dim() == 4 and fake_imgs.dim() == 4
+    ), f"Expect [N, 3, H, W] tensors, got {real_imgs.shape} and {fake_imgs.shape}"
 
     if inception is None:
         inception = load_inception(device=device)

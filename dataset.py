@@ -56,13 +56,13 @@ class WorldDataset(Dataset):
         end_center_x = start_center_x
         end_center_y = start_center_y
 
-        if action == 0:
+        if action == 0:  # up
             end_center_y -= self.stride
-        elif action == 1:
+        elif action == 1:  # down
             end_center_y += self.stride
-        elif action == 2:
+        elif action == 2:  # left
             end_center_x -= self.stride
-        elif action == 3:
+        elif action == 3:  # right
             end_center_x += self.stride
 
         # Clamp to ensure end_crop stays within bounds
@@ -83,16 +83,18 @@ class WorldDataset(Dataset):
         return start_crop, action, end_crop
 
 
-class SingleSampleDataset(Dataset):
+class SelectSampleDataset(Dataset):
     """Wrapper dataset that always returns the same cached sample.
     Useful for overfitting experiments."""
 
-    def __init__(self, base_dataset: Dataset, epoch_length: int = 10_000):
-        self.cached_sample = base_dataset[0]
+    def __init__(
+        self, base_dataset: Dataset, num_samples=10_000, epoch_length: int = 10_000
+    ):
+        self.cached_samples = [base_dataset[i] for i in range(num_samples)]
         self.epoch_length = epoch_length
 
     def __len__(self):
         return self.epoch_length
 
     def __getitem__(self, index: int):
-        return self.cached_sample
+        return self.cached_samples[index % len(self.cached_samples)]

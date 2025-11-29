@@ -156,6 +156,8 @@ def eval_kid(
     model.eval()
     real_imgs = []
 
+    num_real_samples = min(num_real_samples, len(dataloader.dataset))
+
     with torch.inference_mode():
         for starts, _, _ in dataloader:
             starts = starts.to(device).float()

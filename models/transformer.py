@@ -35,6 +35,7 @@ class TransformerBlock(nn.Module):
         scores = scores * (D**-0.5)
         attn = scores.softmax(dim=-1)
         out = torch.bmm(attn, V)
+        out = self.proj(out)
 
         x = x_in + out
         x_in = x

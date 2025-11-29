@@ -22,7 +22,7 @@ def ddim_sample(xt, model, noise_schedule, ddim_steps, steps_to_show):
     with torch.inference_mode():
         for i, t in enumerate(timesteps):
             t_int = int(t)
-            t_long = torch.full((1,), t_int, device=device, dtype=torch.long)
+            t_long = torch.full((xt.size(0),), t_int, device=device, dtype=torch.long)
             t_float = t_long.float() / (T - 1)
 
             # predict eps at this timestep

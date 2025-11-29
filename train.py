@@ -1,6 +1,7 @@
 from train.diffusion import train_diffusion
-from models import DiT
-from dataset import WorldDataset, SingleSampleDataset  # noqa: F401
+from train.world import train_world_model
+from models import DiT, WorldDiT
+from dataset import WorldDataset, SelectSampleDataset  # noqa: F401
 from torch.utils.data import DataLoader
 import torch
 import torch.nn as nn
@@ -28,7 +29,7 @@ def train(run_name=None, experiment="diffusion"):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     dataset = WorldDataset("data/world_map.png")
-    # dataset = SingleSampleDataset(dataset)
+    dataset = SelectSampleDataset(dataset, num_samples=16)
 
     g = torch.Generator()
     g.manual_seed(42)
@@ -37,15 +38,11 @@ def train(run_name=None, experiment="diffusion"):
         dataset,
         batch_size=16,
         shuffle=True,
-        num_workers=4,
+        num_workers=1,
         pin_memory=True,
         worker_init_fn=seed_worker,
         generator=g,
     )
-
-    model = DiT().to(device)
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     run_name_str = ""
     if experiment is not None:
@@ -57,23 +54,46 @@ def train(run_name=None, experiment="diffusion"):
 
     run_name = run_name_str
 
-    train_diffusion(
-        model,
-        criterion,
-        optimizer,
-        dataloader,
-        device=device,
-        num_epochs=2000,
-        save_freq=10,
-        run_name=run_name,
-        save_dir="./checkpoints",
-    )
+    if experiment == "diffusion":
+        model = DiT().to(device)
+        criterion = nn.MSELoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+
+        train_diffusion(
+            model,
+            criterion,
+            optimizer,
+            dataloader,
+            device=device,
+            num_epochs=2000,
+            save_freq=10,
+            run_name=run_name,
+            save_dir="./checkpoints",
+        )
+    elif experiment == "world":
+        model = WorldDiT().to(device)
+        criterion = nn.MSELoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+
+        train_world_model(
+            model,
+            criterion,
+            optimizer,
+            dataloader,
+            device=device,
+            num_epochs=2000,
+            save_freq=10,
+            run_name=run_name,
+            save_dir="./checkpoints",
+        )
+    else:
+        raise ValueError(f"Unknown experiment: {experiment}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--run_name", type=str, default=None)
-    parser.add_argument("--experiment", type=str, default="diffusion")
+    parser.add_argument("--experiment", type=str, default="world")
     args = parser.parse_args()
 
     train(run_name=args.run_name, experiment=args.experiment)
