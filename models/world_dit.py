@@ -7,7 +7,9 @@ from .vision_encoder import VisionEncoder
 
 
 class WorldDiT(nn.Module):
-    def __init__(self, dim=256, depth=3, img_size=64, patch_size=4, channels=3):
+    def __init__(
+        self, dim=256, depth=3, img_size=64, patch_size=4, channels=3, enable_cfg=False
+    ):
         super().__init__()
         self.dim = dim
         self.patch_size = patch_size
@@ -38,12 +40,18 @@ class WorldDiT(nn.Module):
 
         self.cond_proj = nn.Linear(dim * 3, dim)
 
+        self.enable_cfg = enable_cfg
+        self.cond_dropout = 0.1
+        if self.enable_cfg:
+            self.null_start = nn.Parameter(torch.zeros(dim))
+            self.null_action = nn.Parameter(torch.zeros(dim))
+
         self.attn_blocks = nn.ModuleList([TransformerBlock(dim) for _ in range(depth)])
 
         self.unproj = nn.Linear(dim, channels * self.patch_size * self.patch_size)
         self.unpatchify = unpatchify
 
-    def forward(self, x, t, starts, actions):
+    def forward(self, x, t, starts, actions, cfg=False):
         """
         x: noised version of the end state [B, C, H, W]
         t: time conditioning of the step [B]
@@ -73,6 +81,22 @@ class WorldDiT(nn.Module):
         actions = actions.unsqueeze(1)
         # [B, 1] -> [B, D]
         actions = self.action_embed(actions)
+
+        if self.enable_cfg:
+            if self.training and self.cond_dropout > 0:
+                # [B] -> [B, 1]
+                drop_mask = (
+                    torch.rand((B,), device=x.device).unsqueeze(-1) < self.cond_dropout
+                )
+                null_start = self.null_start.unsqueeze(0).expand_as(starts)  # [B, D]
+                null_action = self.null_action.unsqueeze(0).expand_as(actions)  # [B, D]
+                starts = torch.where(drop_mask, null_start, starts)
+                actions = torch.where(drop_mask, null_action, actions)
+            elif cfg:
+                null_start = self.null_start.unsqueeze(0).expand_as(starts)  # [B, D]
+                null_action = self.null_action.unsqueeze(0).expand_as(actions)  # [B, D]
+                starts = null_start
+                actions = null_action
 
         # [B, D], [B, D], [B, D] -> [B, 3 * D]
         cond = torch.cat([t, starts, actions], dim=-1)

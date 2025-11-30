@@ -4,7 +4,7 @@ from typing import Dict
 
 
 def world_ddim_sample(
-    xt, model, start, action, noise_schedule, ddim_steps, steps_to_show
+    xt, model, start, action, noise_schedule, ddim_steps, steps_to_show, cfg_scale=2.0
 ) -> Dict[int, torch.Tensor]:
     device = xt.device
     T = noise_schedule["T"]
@@ -36,6 +36,9 @@ def world_ddim_sample(
             # predict eps at this timestep
             with torch.autocast(device.type, torch.float16):
                 eps = model(xt, t_float, start, action_float)
+                if model.enable_cfg and cfg_scale > 0.0:
+                    eps_null = model(xt, t_float, start, action_float, cfg=True)
+                    eps = eps_null + (eps - eps_null) * cfg_scale
 
             sqrt_alpha_bar_t = sqrt_alphas_bar[t_int].view(-1, 1, 1, 1)
             sqrt_one_minus_alpha_bar_t = sqrt_one_minus_alphas_bar[t_int].view(
