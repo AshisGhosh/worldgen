@@ -40,6 +40,35 @@ def generate_world_snapshots(
     return ddim_snapshots, start.squeeze(0), action.float().mean().int().item()
 
 
+def generate_world_rollout(
+    model,
+    dataset,
+    noise_schedule,
+    rollout_steps: int = 5,
+    device: str = "cuda",
+):
+    num_steps = 100
+    start, action, end = dataset[0]
+    start, end = start.to(device), end.to(device)
+    rollout_snapshots = {"start": start, "end": end}
+    # [1]
+    action_tensor = torch.full((1,), action, device=device)
+
+    steps_to_show = [0]
+
+    prev = start.unsqueeze(0)
+    for i in range(rollout_steps):
+        # [B, C, H, W]
+        xt = torch.randn(1, 3, 64, 64).to(device)
+
+        ddim_snapshots = world_ddim_sample(
+            xt, model, prev, action_tensor, noise_schedule, num_steps, steps_to_show
+        )
+        rollout_snapshots[i] = ddim_snapshots[0]
+        prev = ddim_snapshots[0].unsqueeze(0) * 255
+    return rollout_snapshots, action
+
+
 def eval_world_diffusion(model, loader, noise_schedule, t_val=None):
     model.eval()
     with torch.inference_mode():
@@ -266,6 +295,18 @@ def train_world_model(
             run.track(
                 aim.Image(imgs, caption=f"ddim_snapshot_{steps_str}"),
                 name="ddim_snapshot",
+                step=global_step,
+            )
+
+            rollout_snapshots, action = generate_world_rollout(
+                model, dataloader.dataset, noise_schedule
+            )
+            steps_str = "_".join(map(str, rollout_snapshots.keys()))
+            steps_str += f"_action_{action}"
+            imgs = images_dict_to_grid(rollout_snapshots)
+            run.track(
+                aim.Image(imgs, caption=f"rollout_{steps_str}"),
+                name="rollout",
                 step=global_step,
             )
 
