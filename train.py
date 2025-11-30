@@ -25,11 +25,13 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 
-def train(run_name=None, experiment="diffusion"):
+def train(
+    run_name=None, experiment="diffusion", pretrained=False, pretrained_path=None
+):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     dataset = WorldDataset("data/world_map.png")
-    dataset = SelectSampleDataset(dataset, num_samples=16)
+    # dataset = SelectSampleDataset(dataset, num_samples=64)
 
     g = torch.Generator()
     g.manual_seed(42)
@@ -56,6 +58,10 @@ def train(run_name=None, experiment="diffusion"):
 
     if experiment == "diffusion":
         model = DiT().to(device)
+
+        if pretrained:
+            model.load_state_dict(torch.load(pretrained_path))
+
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
@@ -72,6 +78,10 @@ def train(run_name=None, experiment="diffusion"):
         )
     elif experiment == "world":
         model = WorldDiT().to(device)
+
+        if pretrained:
+            model.load_state_dict(torch.load(pretrained_path))
+
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
@@ -81,8 +91,8 @@ def train(run_name=None, experiment="diffusion"):
             optimizer,
             dataloader,
             device=device,
-            num_epochs=2000,
-            save_freq=10,
+            num_epochs=3000,
+            save_freq=1,
             run_name=run_name,
             save_dir="./checkpoints",
         )
@@ -94,6 +104,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--run_name", type=str, default=None)
     parser.add_argument("--experiment", type=str, default="world")
+    parser.add_argument("--pretrained", action="store_true")
+    parser.add_argument(
+        "--pretrained_path",
+        type=str,
+        default="checkpoints/world_filmcond_pre_20251129_203128/model_3000.pth",
+    )
     args = parser.parse_args()
 
-    train(run_name=args.run_name, experiment=args.experiment)
+    train(
+        run_name=args.run_name,
+        experiment=args.experiment,
+        pretrained=args.pretrained,
+        pretrained_path=args.pretrained_path,
+    )
