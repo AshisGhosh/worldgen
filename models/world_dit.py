@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from .dit import patchify, unpatchify
-from .film import FiLM
 from .transformer import TransformerBlock
 from .siglip import SigLIPEncoder  # noqa: F401
 from .vision_encoder import VisionEncoder
@@ -38,8 +37,6 @@ class WorldDiT(nn.Module):
         self.vision_embed = VisionEncoder(dim, self.img_size, self.channels)
 
         self.cond_proj = nn.Linear(dim * 3, dim)
-
-        self.film = FiLM(dim)
 
         self.attn_blocks = nn.ModuleList([TransformerBlock(dim) for _ in range(depth)])
 
@@ -84,11 +81,8 @@ class WorldDiT(nn.Module):
         cond = self.cond_proj(cond)
 
         # [B, N, D], [B, D] -> [B, N, D]
-        x = self.film(x, cond)
-
-        # [B, N, D]
         for block in self.attn_blocks:
-            x = block(x)
+            x = block(x, cond)
 
         # [B, N, D] -> [B, N, C * P * P]
         x = self.unproj(x)

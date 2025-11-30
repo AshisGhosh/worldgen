@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 
 from .transformer import TransformerBlock
-from .film import FiLM
 
 
 def patchify(x, patch_size):
@@ -52,9 +51,6 @@ class DiT(nn.Module):
             nn.Linear(dim, dim),
         )
 
-        # [B, D]
-        self.film = FiLM(dim)
-
         # proj [B, N, C * P * P] -> [B, N, D]
         self.proj = nn.Linear(img_channels * self.patch_size * self.patch_size, dim)
 
@@ -83,11 +79,8 @@ class DiT(nn.Module):
         # [B, 1] -> [B, D]
         t = self.time_emb(t)
 
-        # [B, N, D], [B, D] -> [B, N, D]
-        x = self.film(x, t)
-
         for block in self.attn_blocks:
-            x = block(x)
+            x = block(x, t)
 
         # [B, N, D] -> [B, N, C * P * P]
         x = self.unproj(x)
