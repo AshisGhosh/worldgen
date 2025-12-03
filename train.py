@@ -1,5 +1,6 @@
 from train.diffusion import train_diffusion
 from train.world import train_world_model
+from train.world_flow import train_world_flow
 from models import DiT, WorldDiT
 from dataset import WorldDataset, SelectSampleDataset  # noqa: F401
 from torch.utils.data import DataLoader
@@ -56,54 +57,75 @@ def train(
 
     run_name = run_name_str
 
-    if experiment == "diffusion":
-        model = DiT().to(device)
+    match experiment:
+        case "diffusion":
+            model = DiT().to(device)
 
-        if pretrained:
-            model.load_state_dict(torch.load(pretrained_path))
+            if pretrained:
+                model.load_state_dict(torch.load(pretrained_path))
 
-        criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+            criterion = nn.MSELoss()
+            optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-        train_diffusion(
-            model,
-            criterion,
-            optimizer,
-            dataloader,
-            device=device,
-            num_epochs=2000,
-            save_freq=10,
-            run_name=run_name,
-            save_dir="./checkpoints",
-        )
-    elif experiment == "world":
-        model = WorldDiT().to(device)
+            train_diffusion(
+                model,
+                criterion,
+                optimizer,
+                dataloader,
+                device=device,
+                num_epochs=2000,
+                save_freq=10,
+                run_name=run_name,
+                save_dir="./checkpoints",
+            )
+        case "world":
+            model = WorldDiT().to(device)
 
-        if pretrained:
-            model.load_state_dict(torch.load(pretrained_path))
+            if pretrained:
+                model.load_state_dict(torch.load(pretrained_path))
 
-        criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+            criterion = nn.MSELoss()
+            optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-        train_world_model(
-            model,
-            criterion,
-            optimizer,
-            dataloader,
-            device=device,
-            num_epochs=3000,
-            save_freq=10,
-            run_name=run_name,
-            save_dir="./checkpoints",
-        )
-    else:
-        raise ValueError(f"Unknown experiment: {experiment}")
+            train_world_model(
+                model,
+                criterion,
+                optimizer,
+                dataloader,
+                device=device,
+                num_epochs=3000,
+                save_freq=10,
+                run_name=run_name,
+                save_dir="./checkpoints",
+            )
+        case "world_flow":
+            model = WorldDiT().to(device)
+
+            if pretrained:
+                model.load_state_dict(torch.load(pretrained_path))
+
+            criterion = nn.MSELoss()
+            optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+
+            train_world_flow(
+                model,
+                criterion,
+                optimizer,
+                dataloader,
+                device=device,
+                num_epochs=3000,
+                save_freq=10,
+                run_name=run_name,
+                save_dir="./checkpoints",
+            )
+        case _:
+            raise ValueError(f"Unknown experiment: {experiment}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--run_name", type=str, default=None)
-    parser.add_argument("--experiment", type=str, default="world")
+    parser.add_argument("--experiment", type=str, default="world_flow")
     parser.add_argument("--pretrained", action="store_true")
     parser.add_argument(
         "--pretrained_path",
