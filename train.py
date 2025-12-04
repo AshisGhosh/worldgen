@@ -99,7 +99,7 @@ def train(
                 save_dir="./checkpoints",
             )
         case "world_flow":
-            model = WorldDiT().to(device)
+            model = WorldDiT(enable_cfg=True).to(device)
 
             if pretrained:
                 model.load_state_dict(torch.load(pretrained_path))
