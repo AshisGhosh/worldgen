@@ -19,6 +19,9 @@ This repository documents an incremental research exploration of generative mode
 - [Metrics](#metrics)
 - [References](#references)
 
+**Deep Dives:**
+- [Conditioning and Normalization: Why RMSNorm + FiLM?](docs/CONDITIONING_AND_NORMALIZATION.md)
+
 ## Research Problem
 
 Given an observation of a 2D world (a crop from a map) and a discrete navigation action (up/down/left/right), predict the next observation after taking that action. This is a simplified world model formulation that captures the essence of learning environment dynamics.
